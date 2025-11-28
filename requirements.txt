@@ -1,5 +1,9 @@
 Flask==3.0.3
 flask-cors==4.0.0
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.0.3
+SQLAlchemy==2.0.25
+Werkzeug>=2.3.0
 python-dotenv==1.0.1
 openai>=1.51.0
 httpx==0.27.2
@@ -10,3 +14,5 @@ numpy==1.26.4
 pandas==2.2.2
 azure-storage-blob>=12.14.1
 six==1.16.0
+azure.search.documents==11.4.0
+playwright==1.49.0

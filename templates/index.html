@@ -11,15 +11,19 @@
 
     <!-- Top nav bar (horizontal, like ChatGPT) -->
     <header class="top-nav">
-      <div class="brand">
+       <!--  Added id="logoBtn" to make logo clickable -->
+      <div class="brand" id="logoBtn">
         <img src="{{ url_for('static', filename='img/sagealpha-logo.png') }}"
-             class="brand-logo" alt="SageAlpha logo" /> 
+             class="brand-logo" alt="SageAlpha logo" />
+
+        <!-- Version label beside the logo -->
+           <span class="app-version" title="SageAlpha v {{ APP_VERSION }}">v {{ APP_VERSION }}</span>
       </div>
-      
+
       <div class="top-nav-right">
         <button id="themeToggle" class="theme-toggle" type="button" >
           <span id="themeIcon">🌙</span>
-        </button> 
+        </button>
       </div>
     </header>
 
@@ -34,38 +38,225 @@
           <!-- sessions list -->
         </div>
 
-        <div class="user-info" id="userInfo">
-          <img id="userAvatar" src="{{ url_for('static', filename='img/avatar-placeholder.png') }}" alt="avatar" />
+        <!-- USER INFO: Replaced with dropdown-enabled structure -->
+        <div class="user-info" id="userInfo" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <img id="userAvatar"
+               src="{{ url_for('static', filename='img/default-avatar.png') }}"
+               alt="avatar"
+               title="User avatar"
+               onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/default-avatar.png') }}';" />
+
           <div class="user-meta">
             <div id="username" class="username">Guest</div>
             <div id="userEmail" class="user-email">guest@gmail.com</div>
           </div>
+
+          <!-- Dropdown menu (hidden by default) -->
+          <div class="user-menu" id="userMenu" hidden role="menu" aria-label="User menu">
+            <button class="user-menu-item" id="profileBtn" type="button">Profile</button>
+            <button class="user-menu-item" id="logoutBtn" type="button">Logout</button>
+          </div>
         </div>
       </aside>
 
-      <main class="chat-area">
+            <main class="chat-area">
         <section class="messages-wrapper">
-          <div id="messages" class="messages" aria-live="polite"></div>
+
+         
+         
+         
+          <!-- START: HERO + MESSAGES + CTA + COMPOSER (restore clean flow) -->
+<div class="hero-cta-composer-wrapper">
+
+  <!-- HERO (centered). Kept in DOM but JS will hide it once a session has messages -->
+  <div id="emptyState" class="empty-state" hidden>
+    <div class="empty-inner">
+      <h2 class="empty-title">Where should we begin?</h2>
+      <p class="empty-sub">Type a prompt or upload a file to start the conversation with SageAlpha.</p>
+    </div>
+  </div>
+
+  <!-- Compact centered CTA (report download) -->
+  <div class="report-cta-wrap" aria-hidden="false">
+    <div class="report-cta-card" tabindex="0" role="button" id="downloadReportBtn" aria-label="Download SageAlpha Report (PDF)">
+      <div class="report-cta-content">
+        <div class="report-cta-title">Download full equity research report</div>
+        <div class="report-cta-sub">CRH PLC — SageAlpha Capital</div>
+      </div>
+      <div class="report-cta-action" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12h14" stroke="#6B46C1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13 5l7 7-7 7" stroke="#6B46C1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- MESSAGES: single, clean messages column (no nested .messages-wrapper) -->
+  <div id="messages" class="messages" aria-live="polite"></div>
+
+  <!-- Composer placeholder (kept here so DOM ordering is hero -> CTA -> messages -> composer) -->
+  <!-- actual composer element remains lower in the page with id="composer" (no duplicate here) -->
+
+</div>
+<!-- END -->
+
+
+
+
+
         </section>
 
-      <footer class="composer">
-        <div class="composer-inner">
-          <label class="attach-label">
-            <input type="file" id="fileInput" style="display:none" />
-            <span class="attach-icon" title="Attach file">📎</span>
-          </label>
+      <!-- Fixed composer: KEEP this element at the bottom of the viewport so JS DOM moves won't visually relocate it -->
+<footer id="composer" class="composer">
 
-          <input id="messageBox" type="text"
-                 placeholder="Type a message or press Enter"
-                 autocomplete="off" />
+  <div class="composer-inner" style="width:100%;max-width:980px;margin:0 auto;">
+    <label class="attach-label">
+      <input type="file" id="fileInput" style="display:none" />
+      <span class="attach-icon" title="Attach file">📎</span>
+    </label>
 
-          <button id="sendBtn" class="send-btn">Send ➤</button>
-       </div>
-      </footer>
+    <textarea id="messageBox" rows="1"
+              placeholder="Type a message or press Enter"
+              autocomplete="off"></textarea>
+
+    <button id="sendBtn" class="send-btn">Send ➤</button>
+  </div>
+</footer>
+
       </main>
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+  
+   <!-- make logo trigger "New Chat" -->
+  <script>
+    document.getElementById("logoBtn")?.addEventListener("click", () => {
+      document.getElementById("newChatBtn")?.click();
+    });
+  </script>
+
+  <!-- prevent version badge from triggering new chat -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+     const badge = document.querySelector(".brand .app-version");
+       if (badge) {
+       badge.addEventListener("click", function (e) {
+         e.stopPropagation();   // stop click bubbling
+       });
+       badge.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.stopPropagation(); // stop keyboard activation
+         }
+       });
+     }
+   });
+  </script>
+
+
+
+
+
+<!-- Client-side PDF generation helper (fetch html, render off-screen, generate PDF)
+<script>
+  // Inserted after chat.js so initReportDownload exists
+  async function clientSideGenerateAndDownloadPdf({ url = '/report-html', filename = 'sagealpha_reports.pdf' } = {}) {
+    try {
+      // fetch the HTML representation of the report
+      const resp = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+      if (!resp.ok) throw new Error('Failed to fetch report HTML: ' + resp.status);
+
+      const htmlText = await resp.text();
+
+      // create a hidden container to host the report DOM
+      let container = document.getElementById('report-pdf-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'report-pdf-container';
+        // keep offscreen and non-visible, but attached so CSS/fonts load
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '1200px'; // wide page width for better fidelity
+        container.style.background = 'white';
+        container.style.zIndex = '-9999';
+        document.body.appendChild(container);
+      }
+      container.innerHTML = htmlText;
+
+      // Wait a tick for fonts / images to load. We attempt to wait for window.load on the fragment's images.
+      // Wait up to 5 seconds for images to load
+      await new Promise((resolve) => {
+        const images = Array.from(container.querySelectorAll('img'));
+        if (!images.length) return resolve();
+        let loaded = 0;
+        const onLoad = () => {
+          loaded++;
+          if (loaded >= images.length) resolve();
+        };
+        images.forEach(img => {
+          if (img.complete) onLoad();
+          else {
+            img.addEventListener('load', onLoad, { once: true });
+            img.addEventListener('error', onLoad, { once: true });
+          }
+        });
+        // safety timeout
+        setTimeout(resolve, 3500);
+      });
+
+      // html2pdf options tuned for A4-like layout and quality
+      const opt = {
+        margin:       [10, 10, 10, 10], // top, left, bottom, right (mm)
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false, width: container.scrollWidth },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        enableLinks:  true
+      };
+
+      // generate and download
+      await html2pdf().set(opt).from(container).save();
+
+      // cleanup
+      container.innerHTML = '';
+      return true;
+    } catch (err) {
+      console.error('clientSideGenerateAndDownloadPdf error:', err);
+      return false;
+    }
+  }
+
+  // Now connect this helper to your CTA button (safety: DOMContentLoaded)
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('downloadReportBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function (ev) {
+      ev.preventDefault();
+      try {
+        btn.setAttribute('aria-busy', 'true');
+        btn.disabled = true;
+
+        // Prefer client-side PDF generation (works in browser and on Azure)
+        const ok = await clientSideGenerateAndDownloadPdf({
+          url: '/report-html',
+          filename: 'sagealpha_reports.pdf'
+        });
+
+        if (!ok) {
+          // fallback: navigate to server endpoint (maybe server-side pdfkit or HTML download)
+          window.location.href = '/download-report';
+        }
+      } finally {
+        btn.removeAttribute('aria-busy');
+        btn.disabled = false;
+      }
+    });
+  });
+</script> -->
+<script src="/static/libs/html2pdf.bundle.min.js"></script>
+<script src="/static/js/chat.js"></script>
+
 </body>
 </html>
