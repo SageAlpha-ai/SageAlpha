@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SageAlpha Capital | Equity Research | CRH</title>
+    <!-- <style>
+        :root {
+            --primary-color: #002b5c; /* Deep Navy - Institutional */
+            --accent-color: #2e8b57; /* Sage Green - Branding */
+            --text-color: #333333;
+            --light-gray: #f4f4f4;
+            --border-color: #e0e0e0;
+            --rating-buy: #008a00; /* Green for Overweight */
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            background-color: #f9f9f9;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary-color);
+        }
+
+        /* Header Styling */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 40px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .logo-area h1 {
+            margin: 0;
+            font-size: 28px;
+            font-family: 'Georgia', serif;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
+        }
+        .logo-area span {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        .logo-sub {
+            font-family: sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+            text-align: right;
+        }
+
+        /* Report Info Bar */
+        .meta-bar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 40px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* 2/3 text, 1/3 sidebar */
+            gap: 40px;
+            padding: 40px;
+        }
+
+        /* Typography */
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 0;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        h3 {
+            font-size: 24px;
+            margin: 0 0 5px 0;
+            color: #000;
+        }
+        
+        .ticker {
+            color: #666;
+            font-weight: normal;
+            font-size: 18px;
+        }
+
+        p, li {
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        /* Rating Box */
+        .rating-box {
+            background-color: #f0f9f0;
+            border: 1px solid var(--rating-buy);
+            padding: 20px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .rating-text {
+            color: var(--rating-buy);
+            font-weight: 900;
+            font-size: 22px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .target-price {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            display: block;
+        }
+        .target-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #666;
+            letter-spacing: 1px;
+        }
+
+        /* Sidebar Data */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            font-size: 13px;
+        }
+        .data-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table .label {
+            color: #666;
+            font-weight: 600;
+        }
+        .data-table .val {
+            text-align: right;
+            color: #000;
+        }
+
+        /* Financial Table */
+        .fin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .fin-table th {
+            text-align: right;
+            padding: 5px;
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        .fin-table td {
+            text-align: right;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .fin-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+        }
+        .fin-table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px 40px;
+            border-top: 1px solid var(--border-color);
+            font-size: 10px;
+            color: #999;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .tagline {
+                text-align: center;
+                margin-top: 10px;
+            }
+        }
+    </style>
+    <style>
+/* ensure colors print */
+:root { --primary-color: #002b5c; --accent-color: #2e8b57; }
+#sagealpha-report-fragment, #sagealpha-report-fragment * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.container { background: #fff; }
+.meta-bar { background: var(--primary-color); color: #fff; }
+.rating-box { background: #f0f9f0; border: 1px solid #008a00; }
+</style> -->
+
+
+</head>
+<body>
+
+   <style>
+/* ---------- Fonts ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+/* ---------- Baseline & print fidelity ---------- */
+:root { --primary-color: #083154; --accent-color: #2e8b57; --rating-buy: #008a00; }
+#sagealpha-report-fragment, #sagealpha-report-fragment * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Body / capture container */
+body, #sagealpha-report-fragment {
+  font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #ffffff;
+  color: #222;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fixed capture width so html2canvas renders consistently */
+#sagealpha-report-fragment { width: 1200px; max-width: 1200px; margin: 0 auto; background: #ffffff; }
+
+/* Container */
+.container {
+  max-width: 900px;
+  margin: 34px auto;
+  background: #fff;
+  box-shadow: none;
+  border-top: 8px solid var(--primary-color);
+  padding: 0;
+  overflow: visible;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 28px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.logo-area h1 { margin: 0; font-size: 26px; font-family: "Georgia", serif; color: var(--primary-color); letter-spacing: -0.5px; }
+.logo-area span { color: var(--accent-color); font-weight:700; }
+.logo-sub { font-size: 11px; letter-spacing: 1.6px; color:#666; }
+
+/* Tagline */
+.tagline { font-size: 11px; color:#6b6b6b; text-align: right; line-height:1.05; }
+
+/* Meta bar */
+.meta-bar {
+  background-color: var(--primary-color);
+  color: #fff;
+  padding: 9px 28px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Grid */
+.main-content {
+  display: grid;
+  grid-template-columns: 2fr 0.95fr;
+  gap: 34px;
+  padding: 28px 28px 36px 28px;
+}
+
+/* Left column */
+.content-col { padding-right: 6px; }
+.content-col h3 { margin: 0 0 6px 0; font-size: 20px; font-weight:700; color:#081b2b; }
+.content-col p.lead { font-style: italic; color:#555; margin-top:0; }
+
+/* Section headings */
+h2 {
+  color: var(--primary-color);
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+  margin: 16px 0 10px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight:700;
+}
+
+/* Body copy */
+p, li { font-size: 13px; line-height: 1.46; color:#222; margin-bottom: 10px; text-align: justify; }
+
+/* Sidebar */
+.sidebar-col { padding-left: 10px; border-left: 1px solid rgba(0,0,0,0.04); }
+.rating-box {
+  background: #f6fff6;
+  border: 2px solid var(--rating-buy);
+  padding: 16px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.rating-text { color: var(--rating-buy); font-weight:800; font-size:16px; display:block; margin-bottom:6px; }
+.target-price { font-size:26px; font-weight:800; color:#0b0b0b; display:block; }
+.target-label { font-size:10px; color:#666; text-transform:uppercase; letter-spacing:1px; }
+
+/* Sidebar data */
+.data-table { width:100%; border-collapse: collapse; font-size:13px; margin-bottom:16px; }
+.data-table td { padding:6px 0; border-bottom:1px solid #f0f0f0; }
+.data-table .label { color:#666; font-weight:600; }
+.data-table .val { text-align:right; color:#000; }
+
+/* Finance table */
+.fin-table { width:100%; border-collapse: collapse; font-size:12px; margin-top:8px; font-family: "Courier New", Courier, monospace; }
+.fin-table th { text-align: right; padding:6px; border-bottom:2px solid var(--primary-color); color:var(--primary-color); font-weight:700; }
+.fin-table td { text-align: right; padding:6px; border-bottom:1px solid #f2f2f2; }
+.fin-table td:first-child { text-align:left; font-weight:700; }
+
+/* Footer */
+.footer { background:#fff; padding: 16px 28px; border-top:1px solid #eee; font-size:10px; color:#888; text-align:center; }
+
+/* Print rules */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body, #sagealpha-report-fragment { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .container { box-shadow: none; border-top-width: 8px; }
+  .main-content { gap: 26px; padding: 18px 20px; }
+  .rating-box { page-break-inside: avoid; }
+}
+
+/* Image improvements */
+img { image-rendering: -webkit-optimize-contrast; max-width:100%; height:auto; display:block; }
+
+/* Final micro-tweaks */
+.container { padding-bottom: 12px; }
+.header .tagline { text-align:right; }
+</style>
+
+
+
+<div class="container">
+    <!-- Header -->
+    <header class="header">
+        <div class="logo-area">
+            <h1>Sage<span>Alpha</span> Capital</h1>
+            <span class="logo-sub">Institutional Equity Research</span>
+        </div>
+        <div class="tagline">
+            Research powered by SageAlpha.ai<br>
+            November 21, 2025
+        </div>
+    </header>
+
+    <!-- Meta Bar -->
+    <div class="meta-bar">
+        <span>Sector: Building Materials — United States</span>
+        <span>Update Note</span>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-content">
+        
+        <!-- Left Column: Content -->
+        <div class="content-col">
+            <h3>CRH PLC <span class="ticker">(CRH)</span></h3>
+            <p style="font-style: italic; color: #555; margin-top: 0;">Infrastructure Super-Cycle Beneficiary & Valuation Dislocation</p>
+
+            <h2>Investment Thesis</h2>
+            <ul>
+                <li><strong>Infrastructure Super-Cycle Beneficiary:</strong> CRH is uniquely positioned to capitalize on peak funding years for the IIJA and CHIPS Act (2026–2027). Its integrated "solutions" model—spanning aggregates, cement, and paving—captures higher share-of-wallet on complex public projects than pure-play peers.</li>
+                <li><strong>Valuation Dislocation Opportunity:</strong> Despite transitioning its primary listing to the NYSE and becoming a U.S. domestic issuer, CRH trades at a ~6 turn discount to U.S. aggregates peers (MLM, VMC) on 2026E EV/EBITDA. We expect this gap to narrow as the market fully digests its re-rating as a U.S. infrastructure leader.</li>
+                <li><strong>Capital Allocation Discipline:</strong> The company continues to compound value through accretive bolt-on M&A ($3.5bn YTD) while simultaneously returning cash to shareholders via a reliable dividend and sequential buyback tranches.</li>
+            </ul>
+
+            <h2>Key Highlights from Recent Results</h2>
+            <ul>
+                <li><strong>Strong Q3 Delivery:</strong> CRH reported Q3 2025 revenue of $11.1bn (+5% YoY) and Adjusted EBITDA of $2.7bn (+10% YoY). EBITDA margins expanded 100bps to 24.3%, driven by pricing discipline and operational efficiencies which successfully offset pockets of weather-related softness.</li>
+                <li><strong>Guidance Raised:</strong> Management raised the midpoint of FY25 Adjusted EBITDA guidance to a range of $7.6–$7.7bn (previously $7.5–$7.7bn), signaling confidence in Q4 backlog execution.</li>
+                <li><strong>Active Buyback:</strong> The company completed its prior buyback phase and immediately launched a fresh $0.3bn tranche to be completed by February 2026, underscoring the robust Free Cash Flow generation (FCF conversion >80%).</li>
+            </ul>
+
+            <h2>Valuation & Target Methodology</h2>
+            <p><strong>Methodology:</strong> Primary valuation based on 13.0× 2026E EV/EBITDA. This represents a discount to the peer group average of ~16.0× (MLM/VMC) but a premium to its historical European trading range, justified by its 75%+ North American EBITDA exposure and superior ROIC.</p>
+            <p><strong>DCF Support:</strong> Our DCF model (WACC 7.8%, terminal growth 3.0%) implies a fundamental value of US$145, supporting our multiple-based target.</p>
+
+            <h2>Catalysts (Next 12 Months)</h2>
+            <ul>
+                <li><strong>Full Index Inclusion:</strong> Potential inclusion in major U.S. indices (S&P 500) following its transition to U.S. domestic issuer status could drive significant passive inflow.</li>
+                <li><strong>FY26 Outlook (Feb 2026):</strong> Formal guidance initiated in February should confirm the expected volume rebound in infrastructure projects, acting as a clearing event for estimates.</li>
+                <li><strong>M&A Execution:</strong> Closing of pending bolt-on acquisitions in the fragmented U.S. aggregates market.</li>
+            </ul>
+            
+            <h2>Risks</h2>
+            <ul>
+                <li><strong>Macro Sensitivity:</strong> A "higher-for-longer" interest rate environment could prolong the stagnation in residential new build activity.</li>
+                <li><strong>Input Cost Inflation:</strong> Spikes in energy (bitumen, natural gas) prices could temporarily compress margins if pricing actions lag cost realization.</li>
+            </ul>
+        </div>
+
+        <!-- Right Column: Sidebar -->
+        <div class="sidebar-col">
+            <div class="rating-box">
+                <span class="rating-text">OVERWEIGHT</span>
+                <span class="target-price">$142.00</span>
+                <span class="target-label">Price Target (12-18m)</span>
+            </div>
+
+            <table class="data-table">
+                <tr>
+                    <td class="label">Current Price</td>
+                    <td class="val">$108.35</td>
+                </tr>
+                <tr>
+                    <td class="label">Upside</td>
+                    <td class="val" style="color: var(--rating-buy);">+31%</td>
+                </tr>
+                <tr>
+                    <td class="label">Market Cap</td>
+                    <td class="val">$73.8 bn</td>
+                </tr>
+                <tr>
+                    <td class="label">Ent. Value</td>
+                    <td class="val">$88.8 bn</td>
+                </tr>
+                <tr>
+                    <td class="label">EV/EBITDA '26E</td>
+                    <td class="val">10.6x</td>
+                </tr>
+                <tr>
+                    <td class="label">P/E '26E</td>
+                    <td class="val">17.4x</td>
+                </tr>
+            </table>
+
+            <h2>Financial Summary</h2>
+            <p style="font-size: 11px; color: #666; margin-bottom: 5px;">($ in millions, except per share)</p>
+            <table class="fin-table">
+                <tr>
+                    <th>Year</th>
+                    <th>2024A</th>
+                    <th>2025E</th>
+                    <th>2026E</th>
+                </tr>
+                <tr>
+                    <td>Rev</td>
+                    <td>34,950</td>
+                    <td>36,200</td>
+                    <td>40,100</td>
+                </tr>
+                <tr>
+                    <td>EBITDA</td>
+                    <td>6,200</td>
+                    <td>7,650</td>
+                    <td>8,420</td>
+                </tr>
+                <tr>
+                    <td>Mrg %</td>
+                    <td>17.7%</td>
+                    <td>21.1%</td>
+                    <td>21.0%</td>
+                </tr>
+                <tr>
+                    <td>EPS</td>
+                    <td>4.65</td>
+                    <td>5.60</td>
+                    <td>6.23</td>
+                </tr>
+                <tr>
+                    <td>FCF/Sh</td>
+                    <td>3.85</td>
+                    <td>4.50</td>
+                    <td>5.10</td>
+                </tr>
+            </table>
+
+            <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+                <p style="font-weight: bold; margin-bottom: 5px;">Analyst</p>
+                <p style="margin-bottom: 0;">SageAlpha Research Team</p>
+                <p style="font-size: 12px; color: #666;">research@sagealpha.ai</p>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                 <p style="font-weight: bold; margin-bottom: 5px;">Rating History</p>
+                 <p style="font-size: 11px; color: #666; line-height: 1.4;">
+                    <strong>Init Overweight:</strong> Jun 2023 @ $45<br>
+                    <strong>Raised PT:</strong> Mar 2025 @ $95<br>
+                    <strong>Maintained:</strong> Nov 2025
+                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 SageAlpha Capital. All rights reserved. This report is for informational purposes only and does not constitute financial advice. Powered by SageAlpha.ai.</p>
+    </footer>
+</div>
+
+</body>
+</html>
+
