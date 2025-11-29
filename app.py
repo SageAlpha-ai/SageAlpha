@@ -4,10 +4,18 @@ import json
 import tempfile
 from datetime import datetime
 from uuid import uuid4
+import re
 
 from flask import (
-    Flask, request, session, render_template, make_response, jsonify,
-    redirect, url_for, send_from_directory
+    Flask,
+    request,
+    session,
+    render_template,
+    make_response,
+    jsonify,
+    redirect,
+    url_for,
+    send_from_directory,
 )
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
@@ -20,7 +28,6 @@ from openai import AzureOpenAI
 from blob_utils import BlobReader
 from extractor import extract_text_from_pdf_bytes, parse_xbrl_file_to_text
 from vector_store import VectorStore
-import re
 
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
@@ -29,6 +36,10 @@ from werkzeug.exceptions import HTTPException
 from flask_login import login_user, logout_user, current_user, LoginManager
 from models import db, User, Message
 from auth import auth as auth_bp  # your auth blueprint (kept)
+
+# ----------------------------------------------------------------------
+# ENV + CONFIG
+# ----------------------------------------------------------------------
 
 load_dotenv()
 
@@ -70,6 +81,10 @@ else:
 if not AZURE_BLOB_CONNECTION_STRING:
     print("[WARN] Missing AZURE_BLOB_CONNECTION_STRING – blob features disabled.")
 
+# ----------------------------------------------------------------------
+# FLASK APP + DB CONFIG
+# ----------------------------------------------------------------------
+
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = FLASK_SECRET
 
@@ -87,11 +102,15 @@ try:
 except Exception as e:
     print("[startup] auth blueprint register failed (maybe already registered):", e)
 
-# ---------------- DB + Login Manager Init ----------------
+# DB + Login Manager Init
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
+
+# ----------------------------------------------------------------------
+# DEMO USERS / DB SEEDING
+# ----------------------------------------------------------------------
 
 
 def seed_demo_users():
@@ -105,12 +124,14 @@ def seed_demo_users():
     print("[startup] Ensuring DB tables and demo users...")
     try:
         db.create_all()
+
         demo_users = [
             ("demouser", "DemoUser", "DemoPass123!"),
             ("devuser", "DevUser", "DevPass123!"),
             ("produser", "ProductionUser", "ProdPass123!"),
         ]
         created_any = False
+
         for username, display, pwd in demo_users:
             existing = User.query.filter_by(username=username).first()
             if not existing:
@@ -121,6 +142,7 @@ def seed_demo_users():
                 )
                 db.session.add(u)
                 created_any = True
+
         if created_any:
             db.session.commit()
             print("[startup] Seeded demo users: demouser / devuser / produser")
@@ -137,12 +159,17 @@ def initialize():
     Ensures DB exists and demo users are present.
     """
     print("[startup] initialize() called – preparing DB & demo users...")
-    seed_demo_users()
+    try:
+        with app.app_context():
+            seed_demo_users()
+    except Exception as e:
+        print("[startup][ERROR] initialize() failed:", repr(e))
 
 
 @login_manager.user_loader
 def load_user(user_id):
     try:
+        # our User model uses integer primary key
         return User.query.get(int(user_id))
     except Exception:
         return None
@@ -164,15 +191,39 @@ def inject_version():
     return {"APP_VERSION": read_version()}
 
 
-# Azure OpenAI client (wrap errors if missing config)
-client = AzureOpenAI(
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-)
+# ----------------------------------------------------------------------
+# AZURE OPENAI + BLOB + VECTOR STORE
+# ----------------------------------------------------------------------
+
+# Azure OpenAI client (only if config present)
+client = None
+if AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY and AZURE_OPENAI_DEPLOYMENT:
+    try:
+        client = AzureOpenAI(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_key=AZURE_OPENAI_API_KEY,
+            api_version=AZURE_OPENAI_API_VERSION,
+        )
+        print("[startup] AzureOpenAI client created.")
+    except Exception as e:
+        print("[startup][ERROR] Failed to create AzureOpenAI client:", repr(e))
+        client = None
+else:
+    print("[startup] AzureOpenAI client not created (missing config).")
 
 BLOB_CONTAINER = "nse-data-raw"
-blob_reader = BlobReader(conn_str=AZURE_BLOB_CONNECTION_STRING, container=BLOB_CONTAINER)
+blob_reader = None
+if AZURE_BLOB_CONNECTION_STRING:
+    try:
+        blob_reader = BlobReader(
+            conn_str=AZURE_BLOB_CONNECTION_STRING, container=BLOB_CONTAINER
+        )
+        print("[startup] BlobReader initialized.")
+    except Exception as e:
+        print("[startup][ERROR] Failed to init BlobReader:", repr(e))
+        blob_reader = None
+else:
+    print("[startup] BlobReader not initialized (missing connection string).")
 
 VECTOR_STORE_DIR = "vector_store_data"
 os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
@@ -182,6 +233,10 @@ INDEX_ON_STARTUP = os.getenv("INDEX_ON_STARTUP", "false").lower() == "true"
 
 
 def startup_index():
+    if not blob_reader:
+        print("[startup] startup_index skipped – blob_reader is None.")
+        return
+
     print("[startup] Listing metadata CSVs...")
     csv_prefix = "metadata/"
     csv_blobs = blob_reader.list_blobs(prefix=csv_prefix)
@@ -266,7 +321,11 @@ def create_session(title="New chat", owner=None):
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# ---------- Helpers ----------
+# ----------------------------------------------------------------------
+# HELPERS
+# ----------------------------------------------------------------------
+
+
 def strip_markdown(text: str) -> str:
     if not text:
         return text
@@ -323,7 +382,11 @@ def search_azure(query_text: str, top_k: int = 5):
     return output
 
 
-# ---------- Routes ----------
+# ----------------------------------------------------------------------
+# ROUTES
+# ----------------------------------------------------------------------
+
+
 @app.route("/")
 def home():
     # If user not authenticated, send to login page.
@@ -462,6 +525,9 @@ def chat():
         ):
             return jsonify({"error": "Authentication required"}), 401
 
+    if not client:
+        return jsonify({"error": "Azure OpenAI client not configured"}), 500
+
     payload = request.get_json(silent=True) or {}
     user_msg = (payload.get("message") or "").strip()
     if not user_msg:
@@ -558,6 +624,9 @@ def chat():
 
 @app.route("/query", methods=["POST"])
 def query():
+    if not client:
+        return jsonify({"error": "Azure OpenAI client not configured"}), 500
+
     payload = request.get_json(silent=True) or {}
     q = (payload.get("q") or "").strip()
     if not q:
@@ -570,26 +639,28 @@ def query():
     if not results and search_client is None:
         results = vs.search(q, k=top_k)
 
-    for r in results:
-        att = r.get("meta", {}).get("attachment") or ""
-        if not fetch_pdf or not att:
-            continue
-        try:
-            if att.startswith("https://"):
-                pdf_bytes = blob_reader.download_blob_url_to_bytes(att)
-            else:
-                pdf_bytes = blob_reader.download_blob_to_bytes(att)
-            extracted = extract_text_from_pdf_bytes(pdf_bytes)
-            meta = {"source": f"pdf_temp:{att}", "attachment": att}
-            temp_doc_id = f"temp_pdf::{att}"
+    # optional PDF fetch
+    if blob_reader:
+        for r in results:
+            att = r.get("meta", {}).get("attachment") or ""
+            if not fetch_pdf or not att:
+                continue
             try:
-                vs.add_temporary_document(
-                    doc_id=temp_doc_id, text=extracted, meta=meta
-                )
-            except Exception:
-                pass
-        except Exception as e:
-            print(f"[query] failed to download/extract {att}: {e}")
+                if att.startswith("https://"):
+                    pdf_bytes = blob_reader.download_blob_url_to_bytes(att)
+                else:
+                    pdf_bytes = blob_reader.download_blob_to_bytes(att)
+                extracted = extract_text_from_pdf_bytes(pdf_bytes)
+                meta = {"source": f"pdf_temp:{att}", "attachment": att}
+                temp_doc_id = f"temp_pdf::{att}"
+                try:
+                    vs.add_temporary_document(
+                        doc_id=temp_doc_id, text=extracted, meta=meta
+                    )
+                except Exception:
+                    pass
+            except Exception as e:
+                print(f"[query] failed to download/extract {att}: {e}")
 
     if search_client:
         final_results = search_azure(q, top_k)
@@ -653,9 +724,6 @@ def report_html():
       - link stylesheet tags (copied so iframe can load them)
       - body inner HTML
       - injected print CSS to ensure print colors and high-quality capture
-
-    If the request looks like an XHR/fetch (our client), return the fragment.
-    Otherwise return the full HTML for normal browsing.
     """
     try:
         html = render_template("sagealpha_reports.html")
@@ -683,60 +751,50 @@ def report_html():
         )
 
         head_html = head_match.group(1) if head_match else ""
-        body_html = body_match.group(1) if body_match else html  # fallback: entire html
+        body_html = body_match.group(1) if body_match else html  # fallback
 
         # Extract inline <style> content from head
         style_blocks = re.findall(
             r"<style[^>]*>([\s\S]*?)</style>", head_html, flags=re.IGNORECASE
         )
 
-        # Extract link rel=stylesheet tags (keep them so iframe can load external css)
+        # Extract link rel=stylesheet tags
         link_tags = re.findall(
             r"<link[^>]*rel=[\"']stylesheet[\"'][^>]*>",
             head_html,
             flags=re.IGNORECASE,
         )
 
-        # IMPORTANT: Inject a small print CSS to ensure colors and layout are preserved during capture
         injected_print_css = """
         <style>
-        /* Ensure print/canvas honors background colors */
         #sagealpha-report-fragment, #sagealpha-report-fragment * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box;
         }
-        /* Make sure the main container has white background for PDF */
         #sagealpha-report-fragment .container {
             background: white !important;
         }
-        /* Tweak page width for html2canvas capture */
         #sagealpha-report-fragment { width: 1200px; max-width: 1200px; margin: 0 auto; }
-        /* Prevent interactive elements from breaking layout */
         #sagealpha-report-fragment a { color: inherit; text-decoration: none; }
         </style>
         """
 
-        # Build combined style string (concat inline styles)
         combined_styles = ""
         if style_blocks:
             combined_styles = "<style>" + "\n".join(style_blocks) + "</style>"
 
-        # Build link tags HTML (convert relative href to absolute URL so iframe can load)
         processed_links = []
         for lt in link_tags:
             href_match = re.search(r'href=[\'"]([^\'"]+)[\'"]', lt)
             if href_match:
                 href = href_match.group(1)
-                if href.startswith("/"):
-                    processed_links.append(lt)
-                else:
-                    processed_links.append(lt)
+                # keep as-is, both relative and absolute
+                processed_links.append(lt)
             else:
                 processed_links.append(lt)
         links_html = "\n".join(processed_links)
 
-        # Compose the fragment: styles (inline + injected), link tags, then the body content
         fragment = (
             f"<div id='sagealpha-report-fragment' style='background:white;'>\n"
             f"{injected_print_css}\n"
@@ -873,6 +931,9 @@ def rename_session(session_id):
 
 @app.route("/chat_session", methods=["POST"])
 def chat_session():
+    if not client:
+        return jsonify({"error": "Azure OpenAI client not configured"}), 500
+
     payload = request.get_json(silent=True) or {}
     session_id = payload.get("session_id")
     user_msg = (payload.get("message") or "").strip()
@@ -959,7 +1020,10 @@ def chat_session():
         return jsonify({"error": str(e)}), 500
 
 
-# ---- start server when run directly ----
+# ----------------------------------------------------------------------
+# LOCAL DEV ENTRYPOINT
+# ----------------------------------------------------------------------
+
 if __name__ == "__main__":
     import sys
 
