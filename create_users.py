@@ -1,6 +1,6 @@
-# create_users.py
+# create_users.py - Local script for seeding DB (optional, since hardcoded in app.py)
 from models import db, User
-from app import app  # expects your app.py to expose `app` variable
+from app import app  # Import app to get context
 
 def create_users():
     with app.app_context():
@@ -12,8 +12,11 @@ def create_users():
         ]
         for username, display, pwd in users:
             if not User.query.filter_by(username=username).first():
-                u = User(username=username, display_name=display)
-                u.set_password(pwd)  # <-- uses model helper
+                u = User(
+                    username=username,
+                    display_name=display,
+                    password_hash=generate_password_hash(pwd),
+                )
                 db.session.add(u)
         db.session.commit()
         print("Created test users: demouser / devuser / produser")
