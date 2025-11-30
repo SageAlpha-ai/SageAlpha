@@ -49,8 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write  # Required for OIDC/JWT auth
-      contents: read   # Required for actions/checkout
+      contents: read   # Required for actions/checkout and artifacts
     environment:
       name: 'production'  # Optional: Add branch/deploy protections here
     steps:
@@ -60,17 +59,12 @@ jobs:
           name: python-app
           path: .
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_18B4DC25087A4F5C9A62A22B1A3E65D9 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_55E7DAABCD8745D293FC7714A82BFB4E }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_871D9A44CC3948FDBA7C1164907066B3 }}  # Added this (was missing)
-
+      # ✅ Direct deploy using publish profile (no azure/login needed)
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'SageAlpha'  # Your App Service name
-          slot-name: 'Production'  # Or omit for default slot
-          package: '.'  # Deploys from downloaded artifact root
+          app-name: 'SageAlpha'            # Your App Service name
+          slot-name: 'Production'          # Or omit for default slot
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_18B4DC25087A4F5C9A62A22B1A3E65D9 }}
+          package: '.'                     # Deploys from downloaded artifact root
