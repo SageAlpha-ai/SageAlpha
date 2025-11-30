@@ -1,6 +1,7 @@
-# create_users.py - Local script for seeding DB (optional, since hardcoded in app.py)
+# create_users.py - Local script for seeding DB
 from models import db, User
-from app import app  # Import app to get context
+from app import app
+from werkzeug.security import generate_password_hash   # ← FIXED
 
 def create_users():
     with app.app_context():
