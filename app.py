@@ -68,9 +68,6 @@ if AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KEY and AZURE_SEARCH_INDEX:
 else:
     print("[startup] Azure Search client not initialized.")
 
-if not AZURE_BLOB_CONNECTION_STRING:
-    print("[WARN] Missing AZURE_BLOB_CONNECTION_STRING – blob features disabled.")
-
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = FLASK_SECRET
 
@@ -87,7 +84,6 @@ os.makedirs(DB_DIR, exist_ok=True)
 db_path = os.path.join(DB_DIR, "sagealpha.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 
 # register auth blueprint
 try:
@@ -140,6 +136,7 @@ def seed_demo_users():
 
 @login_manager.user_loader
 def load_user(user_id):
+    # Keep it simple: expect integer primary keys
     try:
         return User.query.get(int(user_id))
     except Exception:
@@ -161,16 +158,34 @@ def read_version():
 def inject_version():
     return {"APP_VERSION": read_version()}
 
+# ---------- Azure OpenAI client (safe init) ----------
+client = None
+if AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY:
+    try:
+        client = AzureOpenAI(
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+            api_key=AZURE_OPENAI_API_KEY,
+            api_version=AZURE_OPENAI_API_VERSION,
+        )
+        print("[startup] AzureOpenAI client initialized.")
+    except Exception as e:
+        client = None
+        print("[startup][WARN] Failed to initialize AzureOpenAI client:", repr(e))
+else:
+    print("[startup][WARN] Azure OpenAI configuration incomplete – LLM calls will be disabled.")
 
-# Azure OpenAI client (wrap errors if missing config)
-client = AzureOpenAI(
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-)
-
+# ---------- BlobReader (safe init) ----------
 BLOB_CONTAINER = "nse-data-raw"
-blob_reader = BlobReader(conn_str=AZURE_BLOB_CONNECTION_STRING, container=BLOB_CONTAINER)
+blob_reader = None
+if AZURE_BLOB_CONNECTION_STRING:
+    try:
+        blob_reader = BlobReader(conn_str=AZURE_BLOB_CONNECTION_STRING, container=BLOB_CONTAINER)
+        print("[startup] BlobReader initialized.")
+    except Exception as e:
+        blob_reader = None
+        print("[startup][WARN] Failed to initialize BlobReader:", repr(e))
+else:
+    print("[WARN] Missing AZURE_BLOB_CONNECTION_STRING – blob features disabled.")
 
 VECTOR_STORE_DIR = "vector_store_data"
 os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
@@ -180,6 +195,10 @@ INDEX_ON_STARTUP = os.getenv("INDEX_ON_STARTUP", "false").lower() == "true"
 
 
 def startup_index():
+    if not blob_reader:
+        print("[startup] BlobReader not initialized; skipping indexing.")
+        return
+
     print("[startup] Listing metadata CSVs...")
     csv_prefix = "metadata/"
     csv_blobs = blob_reader.list_blobs(prefix=csv_prefix)
@@ -289,8 +308,6 @@ def extract_topic(user_msg: str, last_topic: str | None = None) -> str | None:
     Goal:
       - When user types 'cupid limited' or 'tata motors' → treat that as a new topic.
       - When user types 'give owner name' or 'who is the owner' → keep using last topic.
-
-    This is heuristic but works well for your pattern of usage.
     """
     if not user_msg:
         return last_topic
@@ -699,6 +716,9 @@ def chat():
         ):
             return jsonify({"error": "Authentication required"}), 401
 
+    if client is None:
+        return jsonify({"error": "LLM backend not configured"}), 500
+
     payload = request.get_json(silent=True) or {}
     user_msg = (payload.get("message") or "").strip()
     if not user_msg:
@@ -813,6 +833,9 @@ def chat():
 
 @app.route("/query", methods=["POST"])
 def query():
+    if client is None:
+        return jsonify({"error": "LLM backend not configured"}), 500
+
     payload = request.get_json(silent=True) or {}
     q = (payload.get("q") or "").strip()
     if not q:
@@ -827,7 +850,7 @@ def query():
 
     for r in results:
         att = r.get("meta", {}).get("attachment") or ""
-        if not fetch_pdf or not att:
+        if not fetch_pdf or not att or not blob_reader:
             continue
         try:
             if att.startswith("https://"):
@@ -1143,6 +1166,9 @@ def chat_session():
             and current_user.is_authenticated
         ):
             return jsonify({"error": "Authentication required"}), 401
+
+    if client is None:
+        return jsonify({"error": "LLM backend not configured"}), 500
 
     payload = request.get_json(silent=True) or {}
     session_id = payload.get("session_id")
