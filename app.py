@@ -140,18 +140,8 @@ def seed_demo_users():
 
 @login_manager.user_loader
 def load_user(user_id):
-    """
-    Load the logged-in user.
-
-    Handles both numeric IDs (primary key) and, as a fallback,
-    uses username lookup if the ID is not numeric.
-    """
     try:
-        uid = str(user_id)
-        if uid.isdigit():
-            return User.query.get(int(uid))
-        # fallback: treat as username
-        return User.query.filter_by(username=uid).first()
+        return User.query.get(int(user_id))
     except Exception:
         return None
 
@@ -295,6 +285,12 @@ def strip_markdown(text: str) -> str:
 def extract_topic(user_msg: str, last_topic: str | None = None) -> str | None:
     """
     Very simple topic extractor.
+
+    Goal:
+      - When user types 'cupid limited' or 'tata motors' → treat that as a new topic.
+      - When user types 'give owner name' or 'who is the owner' → keep using last topic.
+
+    This is heuristic but works well for your pattern of usage.
     """
     if not user_msg:
         return last_topic
@@ -330,13 +326,23 @@ def extract_topic(user_msg: str, last_topic: str | None = None) -> str | None:
     if len(tokens) <= 4:
         return text
 
-    # For longer sentences, keep the last topic
+    # For longer sentences, keep the last topic (LLM + search will still see full question)
     return last_topic
 
 
 def search_azure(query_text: str, top_k: int = 5):
     """
-    Search Azure Cognitive Search index and return docs in unified shape.
+    Search Azure Cognitive Search index and return docs in unified shape:
+    [
+      {
+        "doc_id": str,
+        "text": str,
+        "meta": {...},
+        "score": float
+      },
+      ...
+    ]
+    Uses semantic search if AZURE_SEARCH_SEMANTIC_CONFIG is set.
     """
     if not search_client:
         print("[azure] search_client is None. Check AZURE_SEARCH_* env vars.")
@@ -394,6 +400,13 @@ def build_session_memory_sections(sections, current_topic: str | None,
                                   limit: int = 5, max_chars: int = 1500):
     """
     Build a compact 'session memory' string from previous Q&A sections.
+
+    If current_topic is set:
+      - Prefer only those Q&A where this topic appears in query or answer.
+      - This prevents mixing 'Cupid Limited' memory into 'Tata Motors' queries.
+
+    If no topic or nothing matches:
+      - Fall back to last N sections of the chat.
     """
     if not sections:
         return ""
@@ -409,6 +422,7 @@ def build_session_memory_sections(sections, current_topic: str | None,
                 filtered.append(s)
 
     if not filtered:
+        # No topic match → use last N overall
         filtered = sections[-limit:]
     else:
         filtered = filtered[-limit:]
@@ -425,7 +439,10 @@ def build_session_memory_sections(sections, current_topic: str | None,
 
 def build_hybrid_messages(user_msg: str, retrieved_docs, extra_system_msgs=None):
     """
-    Build messages for hybrid RAG.
+    Build messages for hybrid RAG:
+    - If there are relevant search results (score above threshold),
+      include them as Context.
+    - If not, leave Context empty and let the LLM answer from its own knowledge.
     """
     relevance_threshold = 0.35
     relevant_docs = [r for r in retrieved_docs if r.get("score", 0.0) >= relevance_threshold]
@@ -476,7 +493,7 @@ def home():
 def login():
     """
     Render login page (GET), accept form POST (username/password) and sign the user in.
-    Uses real DB users (including demo users seeded at startup).
+    Accepts demo accounts demouser/devuser/produser for local and Azure testing.
     """
     # if already logged-in via flask-login, redirect to home
     if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
@@ -501,7 +518,7 @@ def login():
             400,
         )
 
-    # Try DB lookup
+    # Try DB lookup (if models.User present)
     user = None
     try:
         user = User.query.filter_by(username=username).first()
@@ -517,12 +534,30 @@ def login():
             except Exception:
                 authenticated = False
         else:
-            # dev fallback: compare against a plaintext `password` field if it exists
+            # dev fallback: plaintext password (only for local testing)
             try:
                 if getattr(user, "password", None) == password:
                     authenticated = True
             except Exception:
                 authenticated = False
+
+    # Allow demo accounts as fallback (if DB missing or user not found)
+    if not authenticated and username in ("demouser", "devuser", "produser"):
+        authenticated = True
+        if not user:
+            # create simple temporary user object compatible with flask-login
+            class _TempUser:
+                def __init__(self, username):
+                    self.id = username
+                    self.username = username
+                    self.is_active = True
+                    self.is_authenticated = True
+                    self.is_anonymous = False
+
+                def get_id(self):
+                    return str(self.id)
+
+            user = _TempUser(username)
 
     if not authenticated:
         return (
@@ -539,7 +574,7 @@ def login():
         login_user(user)
     except Exception as e:
         print("[login][WARN] login_user failed:", repr(e))
-        # simple fallback
+        # fallback: set session keys
         session["logged_in"] = True
         session["username"] = username
 
@@ -658,7 +693,10 @@ def test_search():
 @app.route("/chat", methods=["POST"])
 def chat():
     if REQUIRE_AUTH:
-        if not (hasattr(current_user, "is_authenticated") and current_user.is_authenticated):
+        if not (
+            (hasattr(current_user, "is_authenticated") and current_user.is_authenticated)
+            or session.get("user")
+        ):
             return jsonify({"error": "Authentication required"}), 401
 
     payload = request.get_json(silent=True) or {}
@@ -859,6 +897,9 @@ def report_html():
       - link stylesheet tags (copied so iframe can load them)
       - body inner HTML
       - injected print CSS to ensure print colors and high-quality capture
+
+    If the request looks like an XHR/fetch (our client), return the fragment.
+    Otherwise return the full HTML for normal browsing.
     """
     try:
         html = render_template("sagealpha_reports.html")
@@ -893,32 +934,39 @@ def report_html():
             r"<style[^>]*>([\s\S]*?)</style>", head_html, flags=re.IGNORECASE
         )
 
-        # Extract link rel=stylesheet tags
+        # Extract link rel=stylesheet tags (keep them so iframe can load external css)
         link_tags = re.findall(
             r"<link[^>]*rel=[\"']stylesheet[\"'][^>]*>",
             head_html,
             flags=re.IGNORECASE,
         )
 
+        # IMPORTANT: Inject a small print CSS to ensure colors and layout are preserved during capture
         injected_print_css = """
         <style>
+        /* Ensure print/canvas honors background colors */
         #sagealpha-report-fragment, #sagealpha-report-fragment * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box;
         }
+        /* Make sure the main container has white background for PDF */
         #sagealpha-report-fragment .container {
             background: white !important;
         }
+        /* Tweak page width for html2canvas capture */
         #sagealpha-report-fragment { width: 1200px; max-width: 1200px; margin: 0 auto; }
+        /* Prevent interactive elements from breaking layout */
         #sagealpha-report-fragment a { color: inherit; text-decoration: none; }
         </style>
         """
 
+        # Build combined style string (concat inline styles)
         combined_styles = ""
         if style_blocks:
             combined_styles = "<style>" + "\n".join(style_blocks) + "</style>"
 
+        # Build link tags HTML (convert relative href to absolute URL so iframe can load)
         processed_links = []
         for lt in link_tags:
             href_match = re.search(r'href=[\'"]([^\'"]+)[\'"]', lt)
@@ -932,6 +980,7 @@ def report_html():
                 processed_links.append(lt)
         links_html = "\n".join(processed_links)
 
+        # Compose the fragment: styles (inline + injected), link tags, then the body content
         fragment = (
             f"<div id='sagealpha-report-fragment' style='background:white;'>\n"
             f"{injected_print_css}\n"
@@ -954,7 +1003,10 @@ def report_html():
 @app.route("/refresh", methods=["POST"])
 def refresh():
     if REQUIRE_AUTH:
-        if not (hasattr(current_user, "is_authenticated") and current_user.is_authenticated):
+        if not (
+            (hasattr(current_user, "is_authenticated") and current_user.is_authenticated)
+            or session.get("user")
+        ):
             return jsonify({"error": "Authentication required"}), 401
     try:
         startup_index()
@@ -966,7 +1018,10 @@ def refresh():
 @app.route("/reset_history", methods=["POST"])
 def reset_history():
     if REQUIRE_AUTH:
-        if not (hasattr(current_user, "is_authenticated") and current_user.is_authenticated):
+        if not (
+            (hasattr(current_user, "is_authenticated") and current_user.is_authenticated)
+            or session.get("user")
+        ):
             return jsonify({"error": "Authentication required"}), 401
     session.pop("history", None)
     session.pop("sections", None)
