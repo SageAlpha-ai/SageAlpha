@@ -1,67 +1,46 @@
-# Azure WebApp Deployment for SageAlpha
-# Fully fixed + optimized for Azure Oryx Python builds
-
-name: Build and deploy Python app to Azure Web App - SageAlpha
+name: Deploy SageAlpha to Azure
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      # IMPORTANT: Do NOT create a virtualenv locally.
-      # Azure Oryx MUST handle dependency installation.
-      # Only verify requirements.txt syntax.
-      - name: Validate requirements syntax
+      - name: Install dependencies
         run: |
-          python -m py_compile requirements.txt || true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Upload artifact for deployment
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-app
-          path: |
-            .
-            !antenv/
-            !.venv/
-            !__pycache__/
-            !*.db
-            !*.log
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: read
-    environment:
-      name: production
-
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
+          name: app
           path: .
 
-      # 🚀 Deploy using Azure Publish Profile (no azure/login needed)
-      - name: Deploy to Azure WebApp
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app
+          path: .
+
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: "SageAlpha"
-          package: "."
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: "."
