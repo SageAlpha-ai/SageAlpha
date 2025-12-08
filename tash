@@ -1,0 +1,31 @@
+[33mcd265b11[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Azure webapp
+[33mbfdd3a1c[m Fix Azure deploy workflow
+[33m1b4256e4[m Initial commit
+[33m2cdf1e9f[m Fix Azure Oryx build
+[33ma13a5979[m Fix Azure Oryx build
+[33maa3e7167[m Fix Azure app-name and remove slot
+[33m9d50ba3b[m Remove unused workflows
+[33m21ebef7f[m Update main_sagealpha.yml
+[33m49f26648[m first commit
+[33m6a9becb8[m app.py
+[33m3c1d8cab[m changw in app.pyr
+[33md070adb5[m Update main_mysageapp.yml
+[33m482ba185[m Update main_sagealpha.yml
+[33m2d7fd4b5[m ADD create user
+[33me8ccdd14[m ADD user id
+[33md2d2b36a[m ADD user id
+[33mdefaa646[m ADD user id
+[33m16bcb682[m create user file
+[33m6fae549e[m git workflow
+[33m82a36a3e[m Add or update the Azure App Service build and deployment workflow config
+[33m94efe34b[m first commit
+[33me4d672e0[m first commit
+[33mbb56576c[m 1st commit
+[33m0ee40061[m first commit
+[33m18750c08[m Create python-app.yml
+[33m2a5076c2[m Merge origin/main into main (keep local app/UI changes)
+[33m76d7ca43[m Updated: login/signup, per-user sessions, theme fix, UI updates, report handling
+[33me1e01d03[m main
+[33ma13d63b0[m add user
+[33md670fd5e[m user app
+[33m49729108[m user
