@@ -1,0 +1,156 @@
+<!-- templates/login.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SageAlpha — Sign in</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  {% set show_register = show_register | default(false) %}
+
+  <div class="login-page">
+    <div class="login-card" role="main" aria-labelledby="loginTitle">
+      <div class="login-logo">
+        <img src="{{ url_for('static', filename='img/sagealpha-logo.png') }}" alt="SageAlpha" />
+      </div>
+
+      <h1 id="loginTitle" class="login-title">
+        {% if show_register %}Create your SageAlpha account{% else %}Sign in to SageAlpha{% endif %}
+      </h1>
+
+      <!-- SIGN IN FORM -->
+      <form id="loginForm"
+            class="login-form"
+            method="post"
+            action="{{ url_for('login') }}"
+            autocomplete="on"
+            {% if show_register %}hidden{% endif %}>
+
+        <label for="username" class="form-label">Username</label>
+        <input id="username"
+               name="username"
+               class="form-input"
+               type="text"
+               autocomplete="username"
+               value="{{ username | default('') }}"
+               required />
+
+        <label for="password" class="form-label">Password</label>
+        <div class="password-row">
+          <input id="password"
+                 name="password"
+                 class="form-input password-input"
+                 type="password"
+                 autocomplete="current-password"
+                 required
+                 aria-describedby="showPwdHelp" />
+          <button type="button"
+                  id="togglePassword"
+                  class="password-toggle"
+                  aria-pressed="false"
+                  aria-label="Show password">
+            <svg id="eyeIcon"
+                 xmlns="http://www.w3.org/2000/svg"
+                 width="18" height="18"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.6"
+                 stroke-linecap="round"
+                 stroke-linejoin="round"
+                 aria-hidden="true">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
+
+        <div id="loginError"
+             class="form-error"
+             role="alert"
+             aria-live="polite"
+             {% if not error %}hidden{% endif %}>
+          {{ error }}
+        </div>
+
+        <button id="signinBtn" class="btn-primary" type="submit">Sign in</button>
+
+        <div class="login-footer">
+          <small>Local test users:
+            <strong>demouser</strong> /
+            <strong>devuser</strong> /
+            <strong>produser</strong>
+          </small>
+        </div>
+
+        <div class="login-switch">
+          <span>New to SageAlpha?</span>
+          <button type="button" id="showRegister" class="link-button">Create an account</button>
+        </div>
+      </form>
+
+      <!-- SIGN UP FORM -->
+      <form id="registerForm"
+            class="login-form"
+            method="post"
+            action="{{ url_for('register') }}"
+            autocomplete="on"
+            {% if not show_register %}hidden{% endif %}>
+
+        <label for="reg_username" class="form-label">Username</label>
+        <input id="reg_username"
+               name="username"
+               class="form-input"
+               type="text"
+               autocomplete="username"
+               value="{{ reg_username | default('') }}"
+               required />
+
+        <label for="reg_display_name" class="form-label">Full name (optional)</label>
+        <input id="reg_display_name"
+               name="display_name"
+               class="form-input"
+               type="text"
+               autocomplete="name"
+               value="{{ reg_display_name | default('') }}" />
+
+        <label for="reg_password" class="form-label">Password</label>
+        <input id="reg_password"
+               name="password"
+               class="form-input"
+               type="password"
+               autocomplete="new-password"
+               required />
+
+        <label for="reg_password_confirm" class="form-label">Confirm password</label>
+        <input id="reg_password_confirm"
+               name="confirm_password"
+               class="form-input"
+               type="password"
+               autocomplete="new-password"
+               required />
+
+        <div id="registerError"
+             class="form-error"
+             role="alert"
+             aria-live="polite"
+             {% if not register_error %}hidden{% endif %}>
+          {{ register_error }}
+        </div>
+
+        <button class="btn-primary" type="submit">Create account</button>
+
+        <div class="login-switch">
+          <span>Already have an account?</span>
+          <button type="button" id="showLogin" class="link-button">Back to sign in</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,2039 @@
+/* ----------------------------------------------------
+   Global
+---------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+
+body {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+  background: linear-gradient(135deg, #2b2b7a, #5e3bd8, #c368ff);
+  color: #111827;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ----------------------------------------------------
+    TOP NAV (ChatGPT-style)
+---------------------------------------------------- */
+.top-nav {
+  height: 60px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;   /* THIS pushes the toggle to the right */
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Version badge beside logo */
+.app-version {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(255,255,255,0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  margin-left: 8px;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Prevent the version badge from acting like the logo button */
+.brand .app-version {
+  cursor: default;        /* show normal cursor over the badge */
+  pointer-events: auto;   /* allow tooltip hover but allow JS to stop propagation */
+  user-select: none;
+  margin-left: 8px;
+}
+
+
+/* Dark mode */
+body.dark-mode .app-version {
+  color: #cbd5e1;
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+}
+
+
+
+.top-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* spacing between title and dark-mode toggle */
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 120px;          /* wider logo */
+  height: auto;          /* keep natural aspect ratio */
+  min-height: 28px;      /* ensure visibility even if the original is very thin */
+  object-fit: contain;
+  margin-right: 10px;
+  display: inline-block;
+}
+
+.brand-name {
+  font-weight: 700;
+  font-size: 19px;
+}
+
+/* Make the logo clearly clickable and provide subtle hover/focus feedback */
+.brand {
+  cursor: pointer;               /* show pointer to indicate it's clickable */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.brand:focus,
+.brand:active {
+  outline: none;
+  transform: translateY(0.5px);  /* tiny tactile feedback for click/keyboard */
+}
+
+.brand-logo {
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.brand:hover .brand-logo {
+  transform: translateY(-3px) scale(1.02); /* subtle lift on hover */
+  opacity: 0.98;
+}
+
+.brand:focus .brand-logo {
+  box-shadow: 0 0 0 3px rgba(122, 75, 224, 0.14); /* focus ring if element gets focus */
+  transform: translateY(-2px) scale(1.02);
+}
+
+
+.chat-title {
+  font-size: 15px;
+  color: #6b7280;
+}
+
+/* ----------------------------------------------------
+    MAIN LAYOUT: Sidebar + Chat Area
+---------------------------------------------------- */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---------------- Sidebar ---------------- */
+.sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #1f1c6a, #5c3cd8);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.new-chat {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#7a4be0,#a466ff);
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(106,76,224,0.25);
+}
+
+.history {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 18px;
+  padding-right: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  background: rgba(255,255,255,0.07);
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.history-item.active {
+  background: rgba(255,255,255,0.15);
+  border-left: 3px solid #fff;
+}
+
+/* ---------------- User info bottom ---------------- */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  margin-top: 10px
+}
+
+.user-info img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+  object-fit: cover;
+}
+
+.username {
+  font-weight: 700;
+}
+
+.user-email {
+  font-size: 12px;
+  opacity: 10.8;
+}
+
+/* ----------------------------------------------------
+    CHAT AREA
+---------------------------------------------------- */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.messages-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  padding-bottom: 120px;   /* space so messages don’t hide under the composer */
+}
+
+/* Smooth and consistent auto-scroll for new messages */
+.messages-wrapper {
+  scroll-behavior: smooth;
+}
+
+
+.messages {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.msg {
+  padding: 14px 18px;
+  border-radius: 14px;
+  max-width: 78%;
+  font-size: 16px;
+  line-height: 1.45;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: linear-gradient(90deg,#6f4bd8,#9b6df0);
+  color:#fff;
+}
+
+.msg.assistant {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid #e5e7f1;
+}
+
+/* ----------------------------------------------------
+    Composer (input bar)
+---------------------------------------------------- */
+/* ChatGPT style message composer */
+/* Composer (fixed at bottom like ChatGPT) */
+.composer {
+  position: fixed;
+  bottom: 16px;
+  left: 260px;    /* must match .sidebar width */
+  right: 24px;
+  z-index: 1100;  /* above messages, below any modal/CTA */
+  padding: 0 0 16px 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto; /* allow interactions */
+  background: transparent; /* keep background managed by .composer-inner */
+}
+
+/* inner pill */
+.composer-inner {
+  max-width: 980px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px 8px 14px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.16);
+  pointer-events: auto;
+}
+
+/* centered "visual-only" composer state (used on welcome) */
+.composer.centered {
+  /* this class simply adjusts visual placement when desired by JS,
+     but we keep composer fixed so DOM moves don't relocate it. */
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 24px;
+  width: min(920px, calc(100% - 48px));
+}
+
+
+
+/* inner composer box */
+.composer-box {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 14px 18px;
+  border-radius: 40px;
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* textarea / input field */
+#messageBox {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: #111827;
+}
+
+/* attachment button */
+.attach-label {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+/* send button */
+.send-btn {
+  background: linear-gradient(90deg,#7a4be0,#a466ff);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+
+/* ----------------------------------------------------
+    Mobile Responsive
+---------------------------------------------------- */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .layout { flex-direction: column; }
+}
+
+/* ----------------------------------------------------
+   Theme toggle button (top-right, like ChatGPT)
+---------------------------------------------------- */
+.theme-toggle {
+  width: 42px;
+  height: 26px;
+  border-radius: 50px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #f3f4f6;
+}
+
+/* ----------------------------------------------------
+   DARK MODE (body.dark-mode)
+---------------------------------------------------- */
+body.dark-mode {
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color: #e5e7eb;
+}
+
+/* Nav in dark mode */
+body.dark-mode .top-nav {
+  background: #020617f2;
+  border-bottom: 1px solid #111827;
+}
+
+body.dark-mode .brand-name,
+body.dark-mode .chat-title {
+  color: #e5e7eb;
+}
+
+/* Sidebar */
+body.dark-mode .sidebar {
+  background: linear-gradient(180deg, #020617, #111827);
+}
+
+body.dark-mode .history-item {
+  background: rgba(31,41,55,0.9);
+}
+
+body.dark-mode .history-item.active {
+  background: rgba(55,65,81,0.95);
+  border-left-color: #a855f7;
+}
+
+body.dark-mode .user-info img {
+  border-color: rgba(248,250,252,0.6);
+}
+
+/* Chat area */
+body.dark-mode .chat-area {
+  background: #020617;
+}
+
+body.dark-mode .messages-wrapper {
+  background: radial-gradient(circle at top, #020617, #020617);
+}
+
+/* Messages */
+body.dark-mode .msg.user {
+  background: linear-gradient(90deg,#4f46e5,#a855f7);
+}
+
+body.dark-mode .msg.assistant {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+/* Composer – dark mode (ChatGPT-style colours) */
+body.dark-mode .composer {
+  /* keep same position as light mode, only change background fade */
+  background: linear-gradient(
+    to top,
+    rgba(15,23,42,1) 40%,
+    rgba(15,23,42,0.9) 60%,
+    transparent 100%
+  );
+  border-top: none;
+}
+
+/* the pill / box that holds attach + input + send */
+/* ===== Fix composer + input visibility in DARK MODE =====
+   Paste this inside styles.css under the dark-mode rules (end of file is fine)
+*/
+body.dark-mode .composer-inner {
+  /* make the pill dark and match the rest of the UI in dark mode */
+  background: linear-gradient(90deg, rgba(2,6,23,0.95), rgba(6,10,23,0.95));
+  border-color: #0b1220;
+  box-shadow: 0 8px 24px rgba(2,6,23,0.6);
+}
+
+/* Dark / Light mode tweaks */
+body:not(.dark-mode) .attachment-preview {
+  background: rgba(0,0,0,0.03);
+  color: #111827;
+}
+
+body.dark-mode .attachment-name {
+  color: #e6eef8;
+}
+
+
+body.dark-mode #messageBox {
+  /* ensure typed text & caret are visible */
+  background: transparent !important;
+  color: #e6eef8 !important;        /* bright visible text */
+  caret-color: #e6eef8 !important;  /* visible blinking cursor */
+  -webkit-text-fill-color: #e6eef8 !important; /* webkit safeguard */
+  outline: none;
+}
+
+/* placeholder and selection for dark mode */
+body.dark-mode #messageBox::placeholder {
+  color: rgba(230,238,248,0.48) !important;
+}
+
+body.dark-mode #messageBox::selection {
+  background: rgba(230,238,248,0.12);
+  color: #e6eef8;
+}
+
+/* ensure attach button and send button look correct on the dark pill */
+body.dark-mode .attach-label {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.03);
+}
+body.dark-mode .send-btn {
+  box-shadow: 0 6px 18px rgba(106,76,224,0.12);
+}
+
+/* ---------- Empty / welcome state (centered) ---------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 32px;
+  color: #cbd5e1;
+  pointer-events: none; /* only visual; composer handles input */
+}
+
+/* styling for the title/subtext */
+.empty-title {
+  margin: 0;
+  font-size: 28px;
+  color: #e6eef8;
+  font-weight: 600;
+}
+.empty-sub {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+/* ---------- Centered composer (when new chat) ---------- */
+/* this class is toggled by JS; it keeps the composer centered until first send */
+.composer.centered {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: auto;
+  top: 46%;
+  pointer-events: auto;
+  width: min(880px, calc(100% - 220px)); /* leaves sidebar space */
+  z-index: 70;
+  padding: 14px 18px;
+  box-shadow: 0 20px 60px rgba(2,6,23,0.6);
+  background: transparent;
+}
+
+/* inside centered composer, keep inner pill full width */
+.composer.centered .composer-inner {
+  width: 100%;
+  max-width: none;
+}
+
+/* ensure the regular fixed composer still works when centered removed */
+.composer.centered .composer-inner .send-btn {
+  flex-shrink: 0;
+}
+
+/* ---------- CENTERED welcome + composer (ChatGPT-like) ----------
+   REPLACE the previous centered/empty-state rules with this block.
+   This block is theme-aware (light & dark) and adds polished spacing. */
+
+/* messages wrapper when showing the centered welcome */
+.messages-wrapper.centered {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding-top: 0 !important;
+  padding-bottom: 160px;     /* give space so composer doesn't overlap */
+  min-height: calc(100vh - 140px);
+  box-sizing: border-box;
+}
+
+/* the visible welcome panel (title + subtitle) */
+.empty-state {
+  display: none;
+  width: 100%;
+  pointer-events: none;
+}
+.empty-state:not([hidden]) {
+  display: block;
+}
+
+/* center inner content and tune vertical rhythm */
+.empty-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+  transform: translateY(-6px); /* optical nudge so title + pill feel balanced */
+  padding: 6px 20px 22px; /* space around the centered block */
+}
+
+/* big title — theme-aware colors */
+.empty-title {
+  margin: 0 0 12px 0;
+  font-size: 34px;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a; /* light-mode default (dark color) */
+}
+
+/* subtitle */
+.empty-sub {
+  margin: 0 0 22px 0;
+  font-size: 15px;
+  color: #374151; /* light-mode default (muted dark) */
+  opacity: 0.95;
+}
+
+/* ----- COMPOSER CENTERED STATE ----- */
+/* top/left + transform center ensures pixel-perfect centering with the title */
+.composer.centered {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, calc(-50% + 44px)) !important;
+    /* slight +44px shift so composer sits a bit below title like ChatGPT */
+  width: min(920px, calc(100% - 300px)) !important;
+  z-index: 90 !important;
+  pointer-events: auto;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: 0 32px 84px rgba(2,6,23,0.62);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+/* composer inner — pill appearance (will be different in light vs dark) */
+.composer.centered .composer-inner {
+  width: 100%;
+  max-width: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: #ffffff; /* light-mode pill by default */
+  box-shadow: 0 8px 24px rgba(2,6,23,0.06);
+  color: #0f172a;
+}
+
+/* input inside centered composer */
+.composer.centered #messageBox {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+/* send button keeps its shape */
+.composer.centered .send-btn {
+  flex-shrink: 0;
+}
+
+/* subtle mobile tuning */
+@media (max-width: 900px) {
+  .composer.centered {
+    width: calc(100% - 48px) !important;
+    left: 50%;
+    transform: translate(-50%, -40%);
+    top: 44%;
+  }
+  .empty-title { font-size: 28px; }
+}
+
+/* smooth scroll */
+.messages-wrapper { scroll-behavior: smooth; }
+
+/* ---------- THEME OVERRIDES: dark-mode (keeps existing theming consistent) ---------- */
+body.dark-mode .empty-title {
+  color: #e6eef8; /* bright in dark mode */
+}
+body.dark-mode .empty-sub {
+  color: #bfc9d8;
+  opacity: 0.95;
+}
+body.dark-mode .composer.centered .composer-inner {
+  background: rgba(6,10,20,0.42);  /* subtle dark glass */
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 28px 80px rgba(2,6,23,0.66);
+  color: #e6eef8;
+}
+
+/* also ensure small contrast change for send button visibility in light mode */
+body:not(.dark-mode) .composer.centered .send-btn {
+  background: linear-gradient(90deg,#7a4be0,#a466ff);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(122,75,224,0.12);
+}
+
+
+/* ---------- User dropdown menu (bottom-left) ---------- */
+.user-info {
+  position: relative; /* make menu position relative to this */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+}
+
+.user-menu {
+  position: absolute;
+  left: 8px;          /* align with avatar */
+  bottom: 64px;       /* sit above the bottom of the sidebar */
+  min-width: 160px;
+  background: #ffffff;
+  border: 1px solid rgba(15,23,42,0.06);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Theme-aware (dark) */
+body.dark-mode .user-menu {
+  background: linear-gradient(180deg, rgba(6,10,20,0.96), rgba(6,10,20,0.9));
+  border-color: rgba(255,255,255,0.04);
+  box-shadow: 0 12px 40px rgba(2,6,23,0.6);
+}
+
+/* menu item */
+.user-menu-item {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: inherit;
+}
+
+/* hover/focus */
+.user-menu-item:hover,
+.user-menu-item:focus {
+  background: rgba(0,0,0,0.04);
+  outline: none;
+}
+
+/* dark hover */
+body.dark-mode .user-menu-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+
+/* ---------- Login page specific styles ---------- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2b2b7a, #5e3bd8, #c368ff);
+}
+
+.login-card {
+  width: 420px;
+  max-width: calc(100% - 48px);
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 24px 64px rgba(3,6,23,0.48);
+  text-align: left;
+  color: #0f172a;
+}
+
+.login-logo img {
+  width: 100px;
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.login-title {
+  font-size: 20px;
+  text-align: center;
+  margin: 0 0 18px;
+  font-weight: 700;
+}
+
+.login-form .form-label {
+  display: block;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  margin-bottom: 12px;
+  outline: none;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.form-input:focus {
+  border-color: rgba(122,75,224,0.9);
+  box-shadow: 0 6px 18px rgba(122,75,224,0.08);
+}
+
+.password-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.password-input {
+  flex: 1;
+}
+
+/* password toggle button (eye) */
+.password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(15,23,42,0.06);
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  transition: background 0.12s ease, transform 0.12s ease;
+  color: #374151;
+}
+
+.password-toggle:hover {
+  background: rgba(122,75,224,0.06);
+}
+
+.password-toggle.visible {
+  /* small visual when visible */
+  background: rgba(122,75,224,0.08);
+  color: #7c3aed;
+}
+
+/* primary button style reuse */
+.btn-primary {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#7a4be0,#a466ff);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* error box */
+.form-error {
+  color: #9b1c1c;
+  background: rgba(255,230,230,0.9);
+  border: 1px solid rgba(255,200,200,0.9);
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+/* login footer (helper text) */
+.login-footer {
+  margin-top: 12px;
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- USER DROPDOWN FIX (visible in light & dark mode) ---------- */
+/* Add this at the end of static/css/styles.css */
+
+.sidebar .user-info,
+.sidebar .user-info * {
+  /* Ensure dropdowns inside sidebar are above other elements */
+  z-index: 1200;
+}
+
+/* Normalize/override dropdown background + text color for the sidebar user menu.
+   Match styling for both dark and light mode so menu items are always visible. */
+.sidebar .user-menu,
+.sidebar .user-dropdown,
+.sidebar .dropdown-menu,
+.sidebar .menu,
+.sidebar .context-menu {
+  background: #0f172a;               /* strong, readable background (navy) */
+  color: #e6eef8;                    /* light text for readability */
+  border-radius: 10px;
+  padding: 8px;
+  min-width: 140px;
+  box-shadow: 0 12px 36px rgba(2,6,23,0.45);
+  border: 1px solid rgba(255,255,255,0.04);
+  display: block !important;         /* ensure visible even if previously styled hidden */
+  position: absolute !important;
+  left: 16px;                        /* align left inside sidebar */
+  bottom: 72px;                      /* position above the avatar area */
+  overflow: hidden;
+  transition: transform 120ms ease, opacity 120ms ease;
+  opacity: 1 !important;
+}
+
+/* menu items inside the dropdown */
+.sidebar .user-menu a,
+.sidebar .user-menu button,
+.sidebar .user-dropdown a,
+.sidebar .user-dropdown button,
+.sidebar .dropdown-menu a,
+.sidebar .dropdown-menu button,
+.sidebar .menu a,
+.sidebar .menu button,
+.sidebar .context-menu a,
+.sidebar .context-menu button {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* hover & focus states (light highlight) */
+.sidebar .user-menu a:hover,
+.sidebar .user-menu button:hover,
+.sidebar .user-dropdown a:hover,
+.sidebar .user-dropdown button:hover,
+.sidebar .dropdown-menu a:hover,
+.sidebar .dropdown-menu button:hover,
+.sidebar .menu a:hover,
+.sidebar .menu button:hover,
+.sidebar .context-menu a:hover,
+.sidebar .context-menu button:hover,
+.sidebar .user-menu a:focus,
+.sidebar .user-menu button:focus {
+  background: rgba(255,255,255,0.06);
+  outline: none;
+}
+
+/* small divider style if you use <hr> or .divider inside menu */
+.sidebar .user-menu .divider,
+.sidebar .user-dropdown .divider,
+.sidebar .dropdown-menu .divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 6px 0;
+}
+
+/* Light mode tweak: ensure dropdown stays readable if site uses very light background */
+body:not(.dark-mode) .sidebar .user-menu,
+body:not(.dark-mode) .sidebar .user-dropdown,
+body:not(.dark-mode) .sidebar .dropdown-menu,
+body:not(.dark-mode) .sidebar .menu {
+  /* keep the same dark background in light mode for contrast */
+  background: #0f172a;
+  color: #e6eef8;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Dark mode tweak: slightly darker background for dark theme */
+body.dark-mode .sidebar .user-menu,
+body.dark-mode .sidebar .user-dropdown,
+body.dark-mode .sidebar .dropdown-menu,
+body.dark-mode .sidebar .menu {
+  background: linear-gradient(180deg, #020617, #0b1220);
+  color: #e6eef8;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+/* Accessibility: focus ring for keyboard users */
+.sidebar .user-menu a:focus,
+.sidebar .user-menu button:focus {
+  box-shadow: 0 0 0 3px rgba(122,75,224,0.14);
+}
+
+/* In case dropdown uses absolute coordinates different than ours, provide a fallback top positioning */
+.sidebar .user-menu[style],
+.sidebar .user-dropdown[style],
+.sidebar .dropdown-menu[style] {
+  /* no-op that keeps ordering predictable; remove when unnecessary */
+}
+
+
+/* ===== SageAlpha report CTA card (professional UI) ===== */
+.report-cta-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center; /* center below heading */
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.report-cta-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBFAFF 100%);
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(3,6,23,0.45);
+  border: 1px solid rgba(107,70,193,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(920px, 86%);
+  max-width: 960px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+  gap: 16px;
+  outline: none;
+}
+
+/* content block on left */
+.report-cta-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* primary label */
+.report-cta-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #16161a; /* near black for strong contrast */
+  letter-spacing: -0.01em;
+}
+
+/* secondary info */
+.report-cta-sub {
+  font-size: 13px;
+  color: #6b7280; /* muted gray */
+  font-weight: 500;
+}
+
+/* right side icon container */
+.report-cta-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6f2ff; /* soft lilac */
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  transition: background .12s ease, transform .12s ease;
+}
+
+/* icon styling */
+.report-cta-action svg { display: block; }
+
+/* hover/focus states */
+.report-cta-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(3,6,23,0.55);
+}
+.report-cta-card:active {
+  transform: translateY(-1px) scale(.998);
+}
+.report-cta-card:focus {
+  box-shadow: 0 0 0 4px rgba(107,70,193,0.12);
+}
+
+/* responsive tweaks */
+@media (max-width: 720px) {
+  .report-cta-card {
+    padding: 14px 14px;
+    border-radius: 14px;
+    gap: 12px;
+  }
+  .report-cta-title { font-size: 16px; }
+  .report-cta-sub { font-size: 12px; }
+  .report-cta-action { width: 40px; height: 40px; border-radius: 10px; }
+}
+
+/* faster hide animation for report CTA */
+.report-cta-wrap.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: all 0.12s ease;
+}
+
+
+/* Compact report CTA (small rectangle) - paste at end of your main stylesheet */
+.report-cta-wrap {
+  display: flex;
+  justify-content: flex-end;     /* keeps button aligned right like current layout */
+  pointer-events: auto;
+  margin: 0 28px 0 0;            /* tweak spacing from right edge if needed */
+}
+
+/* Make the card compact */
+.report-cta-card {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 12px;
+  width: auto !important;
+  max-width: 340px;              /* max width for compact look */
+  min-width: 260px;              /* small but usable */
+  padding: 10px 14px !important; /* less vertical padding than banner */
+  border-radius: 12px !important;
+  box-shadow: 0 6px 20px rgba(8, 23, 40, 0.12) !important;
+  background: #fff !important;
+  border: 1px solid rgba(107, 70, 193, 0.06) !important;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Text area: let it truncate if too long */
+.report-cta-content {
+  flex: 1 1 auto;
+  min-width: 0;                  /* allow truncation */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Title + subtitle styling inside compact card */
+.report-cta-title {
+  font-size: 14px !important;
+  font-weight: 600;
+  color: #111827;
+  display: block;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.report-cta-sub {
+  font-size: 11px !important;
+  color: #6b7280;
+  display: block;
+  margin-top: 4px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Action chevron — make it a small circular pill */
+.report-cta-action {
+  display: inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:36px !important;
+  height:36px !important;
+  border-radius:8px !important;
+  margin-left: 6px !important;
+  background: linear-gradient(180deg,#8b5cf6,#7c3aed) !important; /* purple */
+  color: #fff !important;
+  flex: 0 0 auto;
+  box-shadow: 0 4px 10px rgba(107,70,193,0.12);
+}
+
+/* Hover/focus for accessibility */
+.report-cta-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(8,23,40,0.14); }
+.report-cta-card:focus { outline: 3px solid rgba(107,70,193,0.12); }
+
+/* Mobile fallback: make it a full-width small button on narrow screens */
+@media (max-width: 700px) {
+  .report-cta-wrap { justify-content: center; margin: 8px 16px; }
+  .report-cta-card { max-width: 100%; min-width: auto; padding: 10px 12px; }
+  .report-cta-title { font-size: 13px; }
+  .report-cta-sub { display: none; } /* hide subtitle on very small screens */
+}
+
+
+/* === Compact report CTA centered between hero & composer === */
+.report-cta-wrap {
+  display: flex;
+  justify-content: center;      /* center horizontally */
+  align-items: center;
+  width: 100%;
+  pointer-events: auto;
+  margin: 16px 0;               /* vertical spacing */
+}
+
+/* keep card compact but centered */
+.report-cta-card {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  max-width: 340px !important;
+  width: auto !important;
+  box-shadow: 0 6px 20px rgba(8,23,40,0.12) !important;
+  background: #fff !important;
+  border: 1px solid rgba(107,70,193,0.06) !important;
+}
+
+/* make the CTA visually centered relative to the hero text */
+.hero-and-cta { 
+  display: flex;
+  flex-direction: column;
+  align-items: center;    /* center children: hero, cta, composer */
+}
+
+/* ensure composer keeps normal width but sits below CTA */
+.composer {
+  margin-top: 18px;
+  width: 760px;           /* keep expected composer width; tweak if you use a different value */
+  max-width: calc(100% - 48px);
+}
+
+/* responsive: for small screens stack naturally and make CTA full-width */
+@media (max-width: 880px) {
+  .report-cta-card { max-width: 92% !important; min-width: auto; }
+  .composer { width: 92% !important; }
+}
+
+/* === Ensure hero + CTA + composer are stacked and spaced uniformly === */
+.hero-and-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;               /* uniform vertical gap between hero, CTA, composer */
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Make sure CTA sits visually above composer */
+.report-cta-wrap {
+  z-index: 3;              /* higher than composer so it's never occluded */
+  position: relative;      /* allow z-index to work */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Ensure the CTA card remains compact */
+.report-cta-card {
+  position: relative;
+  z-index: 4;
+}
+
+/* Composer overrides: make it participate in normal flow (not absolute) */
+.composer, .composer-box, #composer {
+  position: relative !important;   /* override absolute positioning if any */
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin-top: 0 !important;        /* spacing controlled by .hero-and-cta gap */
+  z-index: 1 !important;           /* lower than CTA */
+  width: 760px;                    /* keep composer width consistent */
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+/* If composer had negative margins that cause overlap, neutralize them */
+.composer * { margin: 0; }
+
+/* Accessibility: ensure CTA is clickable on top */
+.report-cta-card,
+.report-cta-wrap {
+  pointer-events: auto;
+}
+
+/* Responsive: reduce composer width on small screens */
+@media (max-width: 880px) {
+  .hero-and-cta { gap: 18px; }
+  .composer, .composer-box, #composer { width: 92% !important; max-width: 92% !important; }
+  .report-cta-card { max-width: 92% !important; }
+}
+
+/* === Ensure download CTA sits above composer and reserve gap === */
+.hero-and-cta { gap: 36px !important; }           /* increase default gap */
+
+.report-cta-wrap { z-index: 50; position: relative; pointer-events: auto; }
+
+/* ensure download card sits visually above composer */
+.report-cta-card { z-index: 60; position: relative; }
+
+/* Composer: ensure it's lower in z-order and doesn't overlap the CTA */
+.composer, .composer-box, #composer {
+  position: relative !important;
+  z-index: 10 !important;               /* much lower than CTA */
+  margin-top: 0 !important;             /* JS will set exact margin */
+  transition: margin-top 160ms ease;    /* smooth push-down */
+}
+
+/* If composer has absolute positioning in some themes, neutralize */
+.composer[style], .composer-box[style], #composer[style] {
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+}
+
+/* Mobile fallback */
+@media (max-width: 880px) {
+  .hero-and-cta { gap: 20px !important; }
+  .composer, .composer-box, #composer { width: 92% !important; }
+}
+
+/* ----- HERO + CTA + COMPOSER STACK ----- */
+/* Container to hold hero text, CTA and composer in a centered vertical stack */
+.hero-and-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;                /* vertical spacing between items */
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 0;
+}
+
+/* Ensure the CTA card is compact and centered */
+.report-cta-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;  /* center the CTA */
+  position: relative;
+  z-index: 50;
+  pointer-events: auto;
+  margin: 0;                /* spacing handled by .hero-and-cta gap */
+}
+
+.report-cta-card {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  max-width: 420px !important;
+  width: auto !important;
+  box-shadow: 0 10px 30px rgba(8, 23, 40, 0.12);
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(0,0,0,0.06);
+  position: relative;
+  z-index: 60;
+}
+
+/* Composer must participate in layout and be below CTA */
+.composer, .composer-box, #composer {
+  position: relative !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: 10 !important;
+  margin-top: 0 !important;   /* JS will set the exact top margin */
+  width: 760px;               /* adjust if your composer uses a different width */
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+/* Make hero content center itself (emptyState inner) */
+.empty-state, .empty-state .empty-inner, #emptyState {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .hero-and-cta { gap: 20px; padding: 16px 0; }
+  .report-cta-card { max-width: 92%; }
+  .composer, .composer-box, #composer { width: 92% !important; }
+}
+
+/* === Stack hero -> CTA -> composer cleanly === */
+.hero-and-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;                /* space between hero, CTA, composer */
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px 0;
+}
+
+/* center and style the CTA */
+.report-cta-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
+.report-cta-card {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  max-width: 420px !important;
+  width: auto !important;
+  box-shadow: 0 10px 30px rgba(8,23,40,0.12);
+  background: var(--card-bg, #fff);
+  border: 1px solid rgba(0,0,0,0.06);
+  z-index: 70;
+  position: relative;
+}
+
+/* make composer participate in flow and be below CTA */
+.composer, .composer-box, #composer {
+  position: relative !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: 30 !important;
+  margin-top: 0 !important;      /* JS will set exact margin */
+  transition: margin-top 140ms ease;
+  width: 760px;                   /* adjust if your normal composer width differs */
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+/* prevent messages area from overlaying CTA/composer */
+.messages, .messages-wrapper {
+  z-index: 20;
+  position: relative;
+  /* ensure there is some min height so hero is visible and CTA/composer have space */
+  min-height: 320px;
+}
+
+/* responsive */
+@media (max-width: 920px) {
+  .hero-and-cta { gap: 20px; padding: 16px 0; }
+  .report-cta-card { max-width: 92%; }
+  .composer, .composer-box, #composer { width: 92% !important; max-width: 92% !important; }
+}
+
+/* ====== Force stack and disable floating composer (high specificity) ====== */
+
+/* wrapper that ensures centered vertical stack */
+.hero-cta-composer-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 28px !important;              /* vertical spacing between hero / CTA / composer */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 18px 0 !important;
+}
+
+/* CTA centered and above composer */
+.hero-cta-composer-wrapper > .report-cta-wrap {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+  z-index: 1000 !important;
+  position: relative !important;
+}
+
+/* ensure CTA card stays compact */
+.report-cta-card {
+  max-width: 420px !important;
+  width: auto !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(8,23,40,0.12) !important;
+  background: var(--card-bg, #fff) !important;
+  position: relative !important;
+  z-index: 1001 !important;
+}
+
+/* --- CRITICAL: force composer back to normal flow --- */
+/* Use very specific selector and !important to override anything */
+.hero-cta-composer-wrapper > #composer,
+.hero-cta-composer-wrapper > .composer,
+.hero-cta-composer-wrapper > .composer-box,
+#composer.composer,
+.composer-box.composer {
+  position: static !important;        /* put it back into normal document flow */
+  transform: none !important;         /* remove any translate/transform */
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;               /* reset margins — JS will set explicit margin if needed */
+  width: 760px !important;            /* desired width of composer; adjust if your app uses different width */
+  max-width: calc(100% - 48px) !important;
+  z-index: 900 !important;            /* lower than CTA but above page background */
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+/* Add a visual spacing placeholder so messages area reserves room */
+.hero-cta-composer-wrapper > .messages,
+.hero-cta-composer-wrapper > .messages-wrapper {
+  min-height: 240px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* defensive: strip inline transforms on children */
+.hero-cta-composer-wrapper [style] {
+  /* keep this minimal — only clear transform/position related inline styles */
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* mobile fallback */
+@media (max-width: 920px) {
+  .hero-cta-composer-wrapper > #composer,
+  .hero-cta-composer-wrapper > .composer,
+  .hero-cta-composer-wrapper > .composer-box {
+    width: 92% !important;
+    max-width: 92% !important;
+  }
+  .hero-cta-composer-wrapper { gap: 20px !important; }
+}
+
+
+/* --- Center composer horizontally under hero & CTA --- */
+/* ensure wrapper centers children */
+.hero-cta-composer-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;    /* center children horizontally */
+  gap: 28px !important;
+}
+
+/* make composer a block with fixed (or capped) width and auto margins */
+.hero-cta-composer-wrapper > #composer,
+.hero-cta-composer-wrapper > .composer,
+.hero-cta-composer-wrapper > .composer-box,
+#composer.composer,
+.composer-box.composer {
+  display: block !important;
+  width: 760px !important;                 /* desired width; change if you want wider/narrower */
+  max-width: calc(100% - 48px) !important; /* responsive cap */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+  position: static !important;
+  transform: none !important;
+  z-index: 900 !important;
+}
+
+/* smaller screens: full width with padding */
+@media (max-width: 920px) {
+  .hero-cta-composer-wrapper > #composer,
+  .hero-cta-composer-wrapper > .composer,
+  .hero-cta-composer-wrapper > .composer-box {
+    width: 92% !important;
+    max-width: 92% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* QUICK EMERGENCY OVERRIDE: restore chat visibility + center composer */
+#messages, .messages, .messages-wrapper {
+  display: block !important;
+  position: relative !important;
+  z-index: 10 !important;
+  width: 100% !important;
+  min-height: 240px !important; /* ensures hero visible area */
+  box-sizing: border-box !important;
+}
+
+/* center composer horizontally and place below CTA */
+#composer, .composer, .composer-box {
+  display: block !important;
+  position: static !important;
+  transform: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 760px !important;         /* adjust if you need narrower/wider */
+  max-width: calc(100% - 48px) !important;
+  margin-top: 36px !important;     /* distance below CTA */
+  z-index: 20 !important;
+  box-sizing: border-box !important;
+}
+
+/* ensure CTA sits above composer */
+.report-cta-wrap { z-index: 40 !important; position: relative !important; display:flex !important; justify-content:center !important; }
+.report-cta-card { z-index: 41 !important; position: relative !important; max-width:420px !important; }
+
+/* prevent other inline transforms from hiding things */
+[style] { transform: none !important; }
+
+/* =========================
+   Centered chat column + CTA + composer styling
+   ========================= */
+
+/* wrapper: stack vertically and center children */
+.hero-cta-composer-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 28px 0 60px 0;
+}
+
+/* messages wrapper: center column and constrain width */
+.messages-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.messages {
+  width: 760px;                 /* adjust to change chat column width */
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 8px 0 0 0;
+  min-height: 260px;
+}
+
+/* message bubbles */
+.msg { 
+  display: inline-block;
+  padding: 14px 18px;
+  border-radius: 14px;
+  margin: 8px 0;
+  max-width: 100%;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+/* user message (right aligned, accent background) */
+.msg.user {
+  margin-left: auto;
+  background: linear-gradient(90deg,#8f5cff,#b15bff);
+  color: #fff;
+  border: none;
+  border-top-right-radius: 18px;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 18px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* assistant message (left aligned, subtle card) */
+.msg.assistant {
+  margin-right: auto;
+  background: rgba(255,255,255,0.03);
+  color: #e9eef6;
+  border: 1px solid rgba(255,255,255,0.03);
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+/* small link/file pill inside messages */
+.msg a, .msg .file-pill {
+  color: #b5a5ff;
+  text-decoration: none;
+  background: rgba(255,255,255,0.02);
+  padding: 6px 10px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+/* CTA styling (centered) */
+.report-cta-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+}
+.report-cta-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 420px;
+  width: auto;
+  background: var(--card-bg, #fff);
+  box-shadow: 0 12px 30px rgba(8,23,40,0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+.report-cta-title { font-weight: 700; font-size: 14px; color: #111; }
+.report-cta-sub { font-size: 12px; color: #666; }
+
+/* Composer: centered and below CTA */
+#composer, .composer, .composer-box {
+  display: block;
+  width: 760px;
+  max-width: calc(100% - 48px);
+  margin: 22px auto 0 auto; /* top gap under CTA */
+  position: relative;
+  transform: none;
+  z-index: 30;
+}
+
+/* responsive */
+@media (max-width: 920px) {
+  .messages { width: 92%; }
+  #composer, .composer { width: 92%; }
+  .hero-cta-composer-wrapper { gap: 20px; padding: 20px 0 36px 0; }
+}
+
+
+/* --------------------------
+   ChatGPT-like left/right bubbles override
+   Append this at the end of static/css/styles.css
+   -------------------------- */
+
+/* Make the messages column take full chat-area width (not narrow centered column) */
+.chat-area .messages-wrapper,
+.chat-area .messages-container,
+.chat-area .messages {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding-left: 40px !important;   /* horizontal padding inside chat area */
+  padding-right: 40px !important;
+  box-sizing: border-box !important;
+}
+
+/* Constrain individual bubble width but allow left/right alignment */
+.chat-area .messages .msg {
+  display: block !important;
+  width: auto !important;
+  max-width: 62% !important;       /* bubble maximum width */
+  word-break: break-word !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Assistant (left) */
+.chat-area .messages .msg.assistant {
+  margin-left: 0 !important;       /* hug left of chat column */
+  margin-right: auto !important;
+  align-self: flex-start !important;
+  /* visual style for left bubble (keeps your colors) */
+  background: rgba(255,255,255,0.03) !important;
+  color: #e9eef6 !important;
+  border: 1px solid rgba(255,255,255,0.03) !important;
+  box-shadow: none !important;
+}
+
+/* User (right) */
+.chat-area .messages .msg.user {
+  margin-right: 0 !important;      /* ensure we control alignment via margin-left:auto */
+  margin-left: auto !important;    /* push bubble to right edge of chat column */
+  align-self: flex-end !important;
+  /* visual style for right bubble (keeps your gradient) */
+  background: linear-gradient(90deg,#8f5cff,#b15bff) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+}
+
+/* Add left/right anchors so bubbles are closer to edges of chat area */
+.chat-area .messages .msg.assistant,
+.chat-area .messages .msg.user {
+  padding: 12px 16px !important;
+  border-radius: 14px !important;
+}
+
+/* Ensure links inside bubbles are readable in dark mode */
+.chat-area .messages .msg a {
+  color: #cfe6ff !important;
+  text-decoration: underline !important;
+}
+
+/* Ensure the messages container has enough bottom padding so composer doesn't overlap */
+.chat-area .messages-wrapper {
+  padding-bottom: 220px !important; /* keeps composer from overlapping messages when fixed */
+}
+
+/* Responsive: narrower screens make bubbles full width with small margins */
+@media (max-width: 920px) {
+  .chat-area .messages .msg {
+    max-width: 94% !important;
+  }
+  .chat-area .messages-wrapper,
+  .chat-area .messages-container,
+  .chat-area .messages {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* Accessibility: ensure keyboard focus visible for CTA and composer when overriding z-index */
+.report-cta-card:focus, .send-btn:focus {
+  outline: 3px solid rgba(122,75,224,0.18);
+  outline-offset: 2px;
+}
+
+/* ---------------------------
+   Chat bubble sizing fixes
+   (Append at END of static/css/styles.css)
+   --------------------------- */
+
+/* Ensure messages column is a vertical flex column that won't force children to full width */
+#messages, .messages {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important; /* left-align by default so inline-block bubbles size correctly */
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Make each bubble size to its content (up to a max width), like ChatGPT */
+.messages .msg {
+  display: inline-block !important;        /* shrink-to-fit content */
+  max-width: 68ch !important;              /* prefer characters width so short lines don't get huge */
+  max-width: min(62%, 68ch) !important;    /* limit by percent on wide screens, and char-width as backup */
+  white-space: pre-wrap !important;        /* preserve newlines but wrap long lines */
+  word-break: break-word !important;
+  padding: 12px 16px !important;
+  margin: 0 !important;                    /* we control alignment via margins below */
+  border-radius: 14px !important;
+  box-sizing: border-box !important;
+}
+
+/* Assistant (left) — keep left alignment, small shadow/card */
+.messages .msg.assistant {
+  margin-inline-start: 0 !important;      /* hug left */
+  margin-inline-end: auto !important;
+  align-self: flex-start !important;
+  background: rgba(255,255,255,0.03) !important;
+  color: inherit !important;
+  border: 1px solid rgba(255,255,255,0.03) !important;
+  box-shadow: none !important;
+}
+
+/* User (right) — push to right, keep gradient style */
+.messages .msg.user {
+  margin-inline-start: auto !important;   /* push to right */
+  margin-inline-end: 0 !important;
+  align-self: flex-end !important;
+  background: linear-gradient(90deg,#8f5cff,#b15bff) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+}
+
+/* Keep anchor/link pill readable inside both bubble types */
+.messages .msg a, .messages .msg .file-pill {
+  color: #dbeafe !important;
+  text-decoration: underline !important;
+}
+
+/* Slight vertical rhythm for multi-line assistant messages */
+.messages .msg.assistant { line-height: 1.5 !important; }
+
+/* Prevent the .messages wrapper centering / narrow column rules from re-clamping width */
+.messages-wrapper, .messages-container {
+  display: block !important;
+  width: 100% !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+  box-sizing: border-box !important;
+}
+
+/* Composer safety: ensure bottom padding remains so messages don't get hidden */
+.messages-wrapper {
+  padding-bottom: 220px !important;
+}
+
+/* Responsive: on small screens, bubbles are nearly full-width but still size to content */
+@media (max-width: 920px) {
+  .messages .msg {
+    max-width: 94% !important;
+    display: inline-block !important;
+  }
+  .messages-wrapper { padding-left: 12px !important; padding-right: 12px !important; padding-bottom: 180px !important; }
+}
+
+/* Accessibility: make focus visible on bubbles that might be interactive */
+.messages .msg:focus {
+  outline: 3px solid rgba(122,75,224,0.12);
+  outline-offset: 2px;
+}
+
+/* === QUICK FIX: ensure composer sits at bottom unless intentionally centered ===
+   Add this at the very end of static/css/styles.css
+*/
+.composer:not(.centered) {
+  position: fixed !important;
+  bottom: 16px !important;
+  left: 260px !important;      /* matches your .sidebar width */
+  right: 24px !important;
+  z-index: 1100 !important;    /* above messages but below modals */
+  display: flex !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* inner pill width kept consistent with composer-inner */
+.composer:not(.centered) .composer-inner {
+  max-width: 980px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* small-screen fallback: keep composer full width on mobile */
+@media (max-width: 900px) {
+  .composer:not(.centered) {
+    left: 16px !important;
+    right: 16px !important;
+  }
+}
+
+
+/* ====== Emergency CTA / Composer stacking fix (append at EOF of static/css/styles.css) ====== */
+
+/* Ensure the report CTA is always visible and above the composer */
+.report-cta-wrap {
+  position: relative !important;
+  z-index: 1400 !important;            /* put CTA above composer */
+  pointer-events: auto !important;     /* ensure clickable */
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* CTA card explicit stacking and visibility */
+.report-cta-card {
+  position: relative !important;
+  z-index: 1401 !important;
+  display: inline-flex !important;
+  box-shadow: 0 12px 36px rgba(2,6,23,0.28) !important;
+  background: var(--card-bg, #fff) !important;
+  opacity: 1 !important;               /* guard against accidental fades */
+}
+
+/* Make sure download button inside card is visible */
+#downloadReportBtn,
+.report-cta-card[role="button"],
+.report-cta-card[tabindex] {
+  display: inline-flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 1402 !important;
+}
+
+/* Nudge composer down so it doesn't overlay the CTA */
+.composer:not(.centered) {
+  margin-bottom: 12px !important;
+  bottom: 16px !important;    /* keeps composer fixed at bottom */
+  z-index: 1100 !important;    /* composer stays below CTA */
+}
+
+/* also ensure any absolute/floating composer doesn't cover CTA on wide screens */
+.hero-cta-composer-wrapper + .composer,
+.hero-cta-composer-wrapper ~ .composer {
+  margin-top: 40px !important;
+}
+
+/* mobile fallback: keep CTA clickable and above composer */
+@media (max-width: 900px) {
+  .report-cta-wrap { z-index: 1600 !important; }
+  .report-cta-card  { z-index: 1601 !important; }
+  .composer:not(.centered) { left: 16px !important; right: 16px !important; bottom: 12px !important; }
+}
+
+
+/* ======= Stable composer (force fixed bottom, respects sidebar width) ======= */
+/* This block intentionally uses !important to override other rules that moved the composer. */
+#composer,
+footer#composer,
+.composer {
+  position: fixed !important;
+  bottom: 16px !important;
+  left: 260px !important;    /* matches your sidebar width */
+  right: 24px !important;
+  z-index: 60 !important;
+  width: auto !important;
+  max-width: calc(100% - 300px) !important; /* leave room for sidebar + margins */
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  transform: none !important;
+  pointer-events: auto !important;
+}
+
+/* Composer inner pill (keep existing look) */
+#composer .composer-inner,
+footer#composer .composer-inner {
+  width: 100%;
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* When screen narrow, fall back to full width */
+@media (max-width: 920px) {
+  #composer, .composer {
+    left: 16px !important;
+    right: 16px !important;
+    max-width: calc(100% - 32px) !important;
+  }
+}
+
+/* Disable the floating/centering rules that pushed composer up */
+.composer.centered,
+.composer.centered .composer-inner,
+.hero-cta-composer-wrapper > #composer,
+.hero-cta-composer-wrapper > .composer,
+.hero-cta-composer-wrapper > .composer-box {
+  position: fixed !important;
+  bottom: 16px !important;
+  left: 260px !important;
+  right: 24px !important;
+  transform: none !important;
+}
+
+
+/* ==== LIGHT MODE FIX: assistant bubble should be dark text on white ==== */
+body:not(.dark-mode) .messages .msg.assistant,
+body:not(.dark-mode) #messages .msg.assistant,
+body:not(.dark-mode) .chat-area .messages .msg.assistant {
+  background: #ffffff !important;          /* white card */
+  color: #111827 !important;               /* dark text */
+  border: 1px solid #e5e7f1 !important;    /* subtle border */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+}
+
+/* links inside assistant messages in light mode */
+body:not(.dark-mode) .messages .msg.assistant a,
+body:not(.dark-mode) #messages .msg.assistant a {
+  color: #2563eb !important;
+  text-decoration: underline;
+}
